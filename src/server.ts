@@ -8,7 +8,7 @@ import rateLimit from 'express-rate-limit';
 import logger, { enableConsoleLogging } from './logger.js';
 import { registerAuthTools } from './auth-tools.js';
 import { registerGraphTools, registerDiscoveryTools } from './graph-tools.js';
-import { buildMcpServerInstructions } from './mcp-instructions.js';
+import { buildMcpServerInstructions, loadExtraInstructions } from './mcp-instructions.js';
 import { installToolSchemaRefNormalization } from './normalize-tool-schema.js';
 import GraphClient from './graph-client.js';
 import AuthManager, {
@@ -268,6 +268,8 @@ class MicrosoftGraphServer {
   private version: string = '0.0.0';
   private multiAccount: boolean = false;
   private accountNames: string[] = [];
+  /** Operator text appended to MCP instructions. Loaded once in initialize(). */
+  private extraInstructions = '';
 
   /**
    * Every HTTP listener `start()` opened, so `stop()` can close every one.
@@ -317,6 +319,7 @@ class MicrosoftGraphServer {
           orgMode: Boolean(this.options.orgMode),
           readOnly: Boolean(this.options.readOnly),
           multiAccount: this.multiAccount,
+          extraInstructions: this.extraInstructions,
         }),
       }
     );
@@ -364,6 +367,8 @@ class MicrosoftGraphServer {
   }
 
   async initialize(version: string): Promise<void> {
+    // Once, before either stdio or per-request HTTP MCP servers are built.
+    this.extraInstructions = loadExtraInstructions(this.options.extraInstructionsFile);
     this.secrets = await getSecrets();
     this.version = version;
 

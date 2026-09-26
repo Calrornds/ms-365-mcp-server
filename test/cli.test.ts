@@ -52,6 +52,7 @@ describe('CLI Module', () => {
     commanderMocks.mockCommand.opts.mockReturnValue({ file: 'test.xlsx' });
     delete process.env.MS365_MCP_ALLOWED_SCOPES;
     delete process.env.MS365_MCP_EXTRA_SCOPES;
+    delete process.env.MS365_MCP_EXTRA_INSTRUCTIONS_FILE;
     delete process.env.MS365_MCP_EXPECTED_USERNAME;
     delete process.env.MS365_MCP_EXPECTED_HOME_ACCOUNT_ID;
     delete process.env.MS365_MCP_AUTH_CACHE_COMMAND;
@@ -60,6 +61,7 @@ describe('CLI Module', () => {
   afterEach(() => {
     delete process.env.MS365_MCP_ALLOWED_SCOPES;
     delete process.env.MS365_MCP_EXTRA_SCOPES;
+    delete process.env.MS365_MCP_EXTRA_INSTRUCTIONS_FILE;
     delete process.env.MS365_MCP_EXPECTED_USERNAME;
     delete process.env.MS365_MCP_EXPECTED_HOME_ACCOUNT_ID;
     delete process.env.MS365_MCP_AUTH_CACHE_COMMAND;
@@ -161,6 +163,22 @@ describe('CLI Module', () => {
       const result = parseArgs();
 
       expect(result.extraScopes).toBe('Bar.Read');
+    });
+
+    it('should use MS365_MCP_EXTRA_INSTRUCTIONS_FILE as a fallback', () => {
+      process.env.MS365_MCP_EXTRA_INSTRUCTIONS_FILE = '/tmp/extra-instructions.md';
+      commanderMocks.mockCommand.opts.mockReturnValue({});
+
+      expect(parseArgs().extraInstructionsFile).toBe('/tmp/extra-instructions.md');
+    });
+
+    it('should prefer CLI extra instructions file over the environment', () => {
+      process.env.MS365_MCP_EXTRA_INSTRUCTIONS_FILE = '/tmp/from-env.md';
+      commanderMocks.mockCommand.opts.mockReturnValue({
+        extraInstructionsFile: '/tmp/from-cli.md',
+      });
+
+      expect(parseArgs().extraInstructionsFile).toBe('/tmp/from-cli.md');
     });
 
     it('should fail closed when extra scopes are supplied empty', () => {

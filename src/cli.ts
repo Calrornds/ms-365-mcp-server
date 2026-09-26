@@ -74,6 +74,10 @@ program
     'Append additional Graph scopes (whitespace-separated) to the token request, beyond those derived from enabled tools. Use with your own app registration (MS365_MCP_CLIENT_ID/SECRET) to request scopes the default app does not declare, then call the endpoints via graph-batch.'
   )
   .option(
+    '--extra-instructions-file <path>',
+    'Absolute path to a UTF-8 file appended to MCP initialize instructions. Missing or unreadable files log a warning and are ignored; content is capped at 32KB. Equivalent env var: MS365_MCP_EXTRA_INSTRUCTIONS_FILE.'
+  )
+  .option(
     '--preset <names>',
     'Use preset tool categories (comma-separated). Available: mail, calendar, files, personal, work, excel, contacts, tasks, onenote, search, users, outlook, onedrive, teams, teams-write, all'
   )
@@ -160,6 +164,7 @@ export interface CommandOptions {
   enabledTools?: string;
   allowedScopes?: string;
   extraScopes?: string;
+  extraInstructionsFile?: string;
   preset?: string;
   listPresets?: boolean;
   listPermissions?: boolean;
@@ -255,6 +260,15 @@ export function parseArgs(): CommandOptions {
         'Provide one or more whitespace-separated scopes, or omit it.'
     );
     process.exit(1);
+  }
+
+  // CLI wins over env. The file is read later, at server startup, so a missing
+  // path warns there instead of failing this parse (login/list commands included).
+  if (
+    options.extraInstructionsFile === undefined &&
+    process.env.MS365_MCP_EXTRA_INSTRUCTIONS_FILE !== undefined
+  ) {
+    options.extraInstructionsFile = process.env.MS365_MCP_EXTRA_INSTRUCTIONS_FILE;
   }
 
   // CLI wins over env, same as every other option here. Left as the raw string:
