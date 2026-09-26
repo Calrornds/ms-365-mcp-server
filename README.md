@@ -196,13 +196,13 @@ This is for use with your own Azure app registration (`MS365_MCP_CLIENT_ID` / `M
 
 ### Extra MCP instructions
 
-Append operator guidance to the MCP `initialize` instructions (stdio and `--http`). Set an absolute path to a UTF-8 text file with `--extra-instructions-file` or `MS365_MCP_EXTRA_INSTRUCTIONS_FILE` (the flag wins). The server reads the file once at startup and appends it after a blank line. A missing or unreadable file logs a warning and startup continues with the default instructions. Content longer than 32 KB is truncated, with a warning.
+Append operator guidance to the MCP `initialize` instructions (stdio and `--http`). Set an absolute path to a UTF-8 text file with `--extra-instructions-file` or `MS365_MCP_EXTRA_INSTRUCTIONS_FILE` (the flag wins). The server reads the file once at startup and appends it after a blank line. A missing, unreadable, empty, or non-regular file logs a warning and startup continues with the default instructions. A relative path is rejected. Content longer than 32 KB is truncated, with a warning.
 
 ```bash
 MS365_MCP_EXTRA_INSTRUCTIONS_FILE=/absolute/path/to/onedrive-upload-instructions.md npx @softeria/ms-365-mcp-server
 ```
 
-`docs/examples/onedrive-upload-instructions.md` is a ready-made file for OneDrive uploads: `driveItem-id` `root:/folder/name.ext:` (the tool appends `/createUploadSession`), a rename-only body, then a PUT to `uploadUrl` with `Content-Range` and no Authorization header.
+`docs/examples/onedrive-upload-instructions.md` is a ready-made file for OneDrive uploads: pass `driveItemId` unencoded (`root:/folder/my file.docx:`); the server percent-encodes it. Omit `name` in the body, or send a name equal to the file name in the path, then PUT to `uploadUrl` with `Content-Range` and no Authorization header.
 
 ## Organization/Work Mode
 

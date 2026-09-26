@@ -1,4 +1,5 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,14 +51,19 @@ describe('buildMcpServerInstructions', () => {
 
   it('describes the OneDrive upload path, rename body, and uploadUrl PUT', () => {
     const s = buildMcpServerInstructions({ ...baseCtx, discovery: false });
-    expect(s).toContain('root:/folder/name.ext:');
+    expect(s).toContain('root:/folder/my file.docx:');
+    expect(s).toContain('root%3A%2Ffolder%2Fmy%20file.docx%3A');
+    expect(s).toContain('unencoded');
+    expect(s).toContain('do not percent-encode');
     expect(s).toContain('create-upload-session');
     expect(s).toContain('@microsoft.graph.conflictBehavior');
-    expect(s).toContain('rename');
+    expect(s).toContain('omit name');
     expect(s).toContain('Content-Range');
     expect(s).toContain('no Authorization');
-    expect(s).toContain('root:/name.ext:');
+    expect(s).toContain('under 60 MiB');
+    expect(s).toContain('250 MB');
     expect(s).not.toContain('/items/root:/path/to/file.txt:/content');
+    expect(s).not.toContain('returns 400');
   });
 });
 
@@ -138,6 +144,54 @@ describe('loadExtraInstructions', () => {
     expect(Buffer.byteLength(extra, 'utf8')).toBeLessThanOrEqual(3);
     expect(warnings[0]).toMatch(/truncat/i);
   });
+
+  it('rejects a relative path without reading it', () => {
+    const warnings: string[] = [];
+    const extra = loadExtraInstructions('extra.md', {
+      warn: (message) => warnings.push(message),
+    });
+
+    expect(extra).toBe('');
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('not absolute');
+    expect(warnings[0]).toContain('Continuing with default instructions');
+  });
+
+  it('warns and skips a directory', () => {
+    const warnings: string[] = [];
+    const extra = loadExtraInstructions(tempDir(), {
+      warn: (message) => warnings.push(message),
+    });
+
+    expect(extra).toBe('');
+    expect(warnings[0]).toContain('not a regular file');
+  });
+
+  it('warns when the file is empty', () => {
+    const file = join(tempDir(), 'empty.txt');
+    writeFileSync(file, '');
+    const warnings: string[] = [];
+    const extra = loadExtraInstructions(file, { warn: (message) => warnings.push(message) });
+
+    expect(extra).toBe('');
+    expect(warnings[0]).toContain('empty');
+  });
+
+  it('does not hang on a FIFO or /dev/zero', () => {
+    const warnings: string[] = [];
+    const fifo = join(tempDir(), 'pipe');
+    execFileSync('mkfifo', [fifo]);
+    const started = Date.now();
+    expect(loadExtraInstructions(fifo, { warn: (message) => warnings.push(message) })).toBe('');
+    if (existsSync('/dev/zero')) {
+      expect(
+        loadExtraInstructions('/dev/zero', { warn: (message) => warnings.push(message) })
+      ).toBe('');
+    }
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(warnings.length).toBeGreaterThan(0);
+    expect(warnings.every((message) => message.includes('not a regular file'))).toBe(true);
+  });
 });
 
 describe('OneDrive upload llmTips', () => {
@@ -151,29 +205,40 @@ describe('OneDrive upload llmTips', () => {
     return { pathPattern: endpoint.pathPattern, llmTip: endpoint.llmTip };
   }
 
-  it('tells create-upload-session to pass root:/folder/name.ext: and PUT with Content-Range', () => {
+  it('tells create-upload-session to pass an unencoded path and PUT with Content-Range', () => {
     const { pathPattern, llmTip } = tip('create-upload-session');
     expect(pathPattern).toBe('/drives/{drive-id}/items/{driveItem-id}/createUploadSession');
-    // driveItemId is one path segment. Substituting root:/folder/name.ext: yields a
-    // Graph path-addressed URL; the runtime percent-encodes that segment (preserving '=').
-    expect(llmTip).toContain('/drives/{drive-id}/items/root:/folder/name.ext:/createUploadSession');
-    expect(llmTip).toContain('root:/folder/name.ext:');
+    expect(llmTip).toContain('root:/folder/my file.docx:');
+    expect(llmTip).toContain(
+      '/drives/{drive-id}/items/root%3A%2Ffolder%2Fmy%20file.docx%3A/createUploadSession'
+    );
+    expect(llmTip).toContain('%2520');
+    expect(llmTip).toContain('unencoded');
     expect(llmTip).not.toContain('{parentId}');
     expect(llmTip).toContain('rename');
-    expect(llmTip).toContain('adding name');
+    expect(llmTip).toContain('Omit name');
+    expect(llmTip).toContain('must equal the file name');
+    expect(llmTip).not.toContain('returns 400');
     expect(llmTip).toContain('Content-Range');
     expect(llmTip).toContain('bytes 0-(N-1)/N');
     expect(llmTip).toContain('no Authorization');
+    expect(llmTip).toContain('under 60 MiB');
     expect(llmTip).toContain('327680');
+    expect(llmTip).toContain('202');
+    expect(llmTip).toContain('list-drives');
     expect(llmTip).toContain('size');
   });
 
-  it('tells upload-file-content not to include /content in driveItemId', () => {
+  it('tells upload-file-content the encoded URL and the 250 MB PUT limit', () => {
     const { pathPattern, llmTip } = tip('upload-file-content');
     expect(pathPattern).toBe('/drives/{drive-id}/items/{driveItem-id}/content');
-    expect(llmTip).toContain('/drives/{drive-id}/items/root:/folder/name.ext:/content');
-    expect(llmTip).toContain('root:/folder/name.ext:');
-    expect(llmTip).toContain('root:/name.ext:/content');
+    expect(llmTip).toContain('root:/folder/my file.docx:');
+    expect(llmTip).toContain(
+      '/drives/{drive-id}/items/root%3A%2Ffolder%2Fmy%20file.docx%3A/content'
+    );
+    expect(llmTip).toContain('250 MB');
+    expect(llmTip).toContain('%2520');
+    expect(llmTip).toContain('list-drives');
     expect(llmTip).not.toContain('/items/root:/path/to/file.txt:/content');
   });
 });
