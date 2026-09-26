@@ -194,6 +194,16 @@ npx @softeria/ms-365-mcp-server \
 
 This is for use with your own Azure app registration (`MS365_MCP_CLIENT_ID` / `MS365_MCP_CLIENT_SECRET`): the default Softeria app only declares a lean, fixed permission set, so request additional scopes against an app you control (your tenant admin consents to them there). CLI value takes precedence over the env var; an empty value fails at startup.
 
+### Extra MCP instructions
+
+Append operator guidance to the MCP `initialize` instructions (stdio and `--http`). Set an absolute path to a UTF-8 text file with `--extra-instructions-file` or `MS365_MCP_EXTRA_INSTRUCTIONS_FILE` (the flag wins). The server reads the file once at startup and appends it after a blank line. A missing, unreadable, empty, or non-regular file logs a warning and startup continues with the default instructions. A relative path is rejected. Content longer than 32 KB is truncated, with a warning.
+
+```bash
+MS365_MCP_EXTRA_INSTRUCTIONS_FILE=/absolute/path/to/onedrive-upload-instructions.md npx @softeria/ms-365-mcp-server
+```
+
+`docs/examples/onedrive-upload-instructions.md` is a ready-made file for OneDrive uploads: pass `driveItemId` unencoded (`root:/folder/my file.docx:`); the server percent-encodes it. Omit `name` in the body, or send a name equal to the file name in the path, then PUT to `uploadUrl` with `Content-Range` and no Authorization header.
+
 ## Organization/Work Mode
 
 To access work/school features (Teams, SharePoint, etc.), enable organization mode using any of these flags:
@@ -634,6 +644,7 @@ When running as an MCP server, the following options can be used:
 --no-dynamic-registration Disable OAuth Dynamic Client Registration (enabled by default in HTTP mode)
 --enabled-tools <pattern> Filter tools using regex pattern (e.g., "excel|contact" to enable Excel and Contact tools)
 --preset <names>  Use preset tool categories (comma-separated). See "Tool Presets" section above
+--extra-instructions-file <path> Absolute path to a UTF-8 file appended to MCP initialize instructions (see Extra MCP instructions)
 --list-presets    List all available presets and exit
 --toon            (experimental) Enable TOON output format for 30-60% token reduction
 --discovery       Dynamic tool discovery: loads tools on demand to reduce initial token usage (see "Dynamic Tool Discovery" above)
@@ -673,6 +684,7 @@ Environment variables:
 - `MS365_MCP_AUTH_CACHE_COMMAND_TIMEOUT_MS`: Per-invocation timeout for `MS365_MCP_AUTH_CACHE_COMMAND` (default: `10000`)
 - `MS365_MCP_EXPECTED_USERNAME`: Require local MSAL auth to use this Microsoft account username (case-insensitive; CLI flag takes precedence)
 - `MS365_MCP_EXPECTED_HOME_ACCOUNT_ID`: Require local MSAL auth to use this exact MSAL homeAccountId (CLI flag takes precedence)
+- `MS365_MCP_EXTRA_INSTRUCTIONS_FILE`: Absolute path to a UTF-8 file appended to MCP initialize instructions (CLI flag `--extra-instructions-file` takes precedence; missing files warn and are ignored; capped at 32 KB). See Extra MCP instructions
 
 ## Server-Minted Attachment URLs
 

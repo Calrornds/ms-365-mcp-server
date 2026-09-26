@@ -646,7 +646,7 @@
     "toolName": "upload-file-content",
     "presets": ["files", "onedrive", "personal"],
     "scopes": [["Files.ReadWrite"], ["Sites.Selected"]],
-    "llmTip": "Body is a base64-encoded string of the file bytes; the server decodes it before PUT. Graph accepts up to 250MB here, but the whole string travels as a tool argument and a truncated one decodes to a truncated file with no error, so use create-upload-session rather than emitting a large base64 string. For new files use path format: /items/root:/path/to/file.txt:/content. Overwrites existing files without warning."
+    "llmTip": "Body is a base64 string of the file bytes; the server decodes it before PUT. Graph allows up to 250 MB here, but a truncated argument is stored as a broken file with no error, and this overwrites existing files, so prefer create-upload-session for real files. Pass driveItemId unencoded, for example root:/folder/my file.docx: (trailing colon, spaces as written). Do not percent-encode it or a space becomes %2520. The server encodes the segment and PUTs /drives/{drive-id}/items/root%3A%2Ffolder%2Fmy%20file.docx%3A/content. Do not add /content to driveItemId. driveId is the user's drive or a SharePoint site drive from list-drives."
   },
   {
     "pathPattern": "/drives/{drive-id}/items/{driveItem-id}/createUploadSession",
@@ -654,7 +654,7 @@
     "toolName": "create-upload-session",
     "presets": ["files", "onedrive", "personal"],
     "scopes": [["Files.ReadWrite"], ["Sites.Selected"]],
-    "llmTip": "For large file uploads (no size limit, and no minimum unlike the Outlook attachment session). Returns a pre-authenticated uploadUrl; the caller PUTs the bytes there itself. This server does not perform the PUT. For new files use path: /items/{parentId}:/{fileName}:/createUploadSession. Body (optional): { item: { '@microsoft.graph.conflictBehavior': 'rename' } }."
+    "llmTip": "Prefer this for real files. Pass driveItemId unencoded, for example root:/folder/my file.docx: (trailing colon, spaces as written). Do not percent-encode it or a space becomes %2520. The server encodes the segment and POSTs /drives/{drive-id}/items/root%3A%2Ffolder%2Fmy%20file.docx%3A/createUploadSession. Do not put /content or /createUploadSession in driveItemId. driveId comes from list-drives (your drive or a SharePoint site drive). Body: {\"item\":{\"@microsoft.graph.conflictBehavior\":\"rename\"}}. Omit name; if you send name it must equal the file name in the path. Returns uploadUrl. PUT the raw bytes yourself (this server does not) with Content-Length: N, Content-Range: bytes 0-(N-1)/N, and no Authorization header. Each request must be under 60 MiB. Larger files use chunks in multiples of 327680 bytes (the last chunk may be shorter), each with Content-Range. An intermediate chunk returns 202; success is the final 201 or 200 whose size equals N."
   },
   {
     "pathPattern": "/drives/{drive-id}/items/{driveItem-id}",

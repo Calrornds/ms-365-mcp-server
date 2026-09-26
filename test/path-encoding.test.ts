@@ -32,6 +32,29 @@ vi.mock('../src/generated/client.js', () => ({
           { name: 'eventId', type: 'Path', schema: z.string() },
         ],
       },
+      {
+        alias: 'upload-file-content',
+        method: 'put',
+        path: '/drives/:driveId/items/:driveItemId/content',
+        description: 'Upload file content.',
+        requestFormat: 'binary',
+        parameters: [
+          { name: 'driveId', type: 'Path', schema: z.string() },
+          { name: 'driveItemId', type: 'Path', schema: z.string() },
+          { name: 'body', type: 'Body', schema: z.string() },
+        ],
+      },
+      {
+        alias: 'create-upload-session',
+        method: 'post',
+        path: '/drives/:driveId/items/:driveItemId/createUploadSession',
+        description: 'Create an upload session.',
+        parameters: [
+          { name: 'driveId', type: 'Path', schema: z.string() },
+          { name: 'driveItemId', type: 'Path', schema: z.string() },
+          { name: 'body', type: 'Body', schema: z.object({}).passthrough() },
+        ],
+      },
     ],
   },
 }));
@@ -105,4 +128,27 @@ describe('Path parameter encoding (issue #245)', () => {
       .calls[0][0] as string;
     expect(calledPath).toContain('some%20id%20with%20spaces');
   });
+
+  it.each([
+    ['upload-file-content', '/drives/drive-1/items/root%3A%2Ffolder%2Fmy%20file.docx%3A/content'],
+    [
+      'create-upload-session',
+      '/drives/drive-1/items/root%3A%2Ffolder%2Fmy%20file.docx%3A/createUploadSession',
+    ],
+  ])(
+    'encodes an unencoded driveItemId with a subfolder and a space for %s',
+    async (toolName, expectedPath) => {
+      const handler = getToolHandler(toolName);
+      await handler({
+        driveId: 'drive-1',
+        driveItemId: 'root:/folder/my file.docx:',
+        body: toolName === 'upload-file-content' ? Buffer.from('hi').toString('base64') : {},
+        confirm: true,
+      });
+
+      const calledPath = (mockGraphClient.graphRequest as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as string;
+      expect(calledPath).toBe(expectedPath);
+    }
+  );
 });
