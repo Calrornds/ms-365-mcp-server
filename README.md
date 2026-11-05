@@ -7,6 +7,10 @@ Microsoft 365 MCP Server
 A Model Context Protocol (MCP) server for interacting with Microsoft 365 and Microsoft Office services through the Graph
 API.
 
+## Inssitu
+
+This fork's live Inssitu deployment — what runs on the box, the public hostname, the wa-bridge watchdog, and OneDrive upload — is in [docs/inssitu-ops.md](docs/inssitu-ops.md). The sections below stay the upstream Softeria guide.
+
 ## Supported Clouds
 
 This server supports multiple Microsoft cloud environments:
