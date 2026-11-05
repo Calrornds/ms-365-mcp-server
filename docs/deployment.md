@@ -1,6 +1,8 @@
 # Production Deployment
 
-Inssitu's live box (public hostname, watchdog scripts, HTTP wrap, OneDrive upload) is in [inssitu-ops.md](inssitu-ops.md). The rest of this file is the upstream hosting guide.
+El box en vivo de Inssitu (hostname público, scripts del watchdog, adaptador HTTP y subida a OneDrive) está en [inssitu-ops.md](inssitu-ops.md). El resto de este archivo es la guía de hosting original.
+
+Inssitu's live box (public hostname, watchdog scripts, HTTP adapter, and OneDrive upload) is in [inssitu-ops.md](inssitu-ops.md). The rest of this file is the upstream hosting guide.
 
 The server can be hosted centrally so that multiple users in an organization share a single MCP endpoint. Each user
 authenticates with their own Microsoft account via OAuth — the server is stateless and does not store tokens.

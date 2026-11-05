@@ -9,7 +9,9 @@ API.
 
 ## Inssitu
 
-This fork's live Inssitu deployment — what runs on the box, the public hostname, the wa-bridge watchdog, and OneDrive upload — is in [docs/inssitu-ops.md](docs/inssitu-ops.md). The sections below stay the upstream Softeria guide.
+El despliegue en vivo de Inssitu — qué corre en el box, el hostname público, el watchdog de wa-bridge y la subida a OneDrive — está en [docs/inssitu-ops.md](docs/inssitu-ops.md). Las secciones de abajo siguen la guía original de Softeria.
+
+The live Inssitu deployment — what runs on the box, the public hostname, the wa-bridge watchdog, and OneDrive upload — is in [docs/inssitu-ops.md](docs/inssitu-ops.md). The sections below stay the upstream Softeria guide.
 
 ## Supported Clouds
 
